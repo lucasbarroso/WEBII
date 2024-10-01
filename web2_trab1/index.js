@@ -19,7 +19,7 @@ app.get('/saudacao/:nome', (req, res) => {
 });
 
 // 3)Middleware de autenticação
-async function autenticacaoMiddleware (req, res, next) {
+async function autenticacaoMiddleware(req, res, next) {
   const token = req.headers['authorization'];
 
   if (token) {
@@ -83,7 +83,7 @@ app.post('/novo-produto', validacaoNovoProduto, (req, res) => {
 
 
 //6)Middleware de validação para novo produto
- async function validacaoNovoProduto (req, res, next) {
+async function validacaoNovoProduto(req, res, next) {
   const { nome, categoria, preco } = req.body;
 
   if (!nome || typeof nome !== 'string' || nome.trim().length === 0) {
@@ -100,6 +100,28 @@ app.post('/novo-produto', validacaoNovoProduto, (req, res) => {
 
   next();
 };
+
+// 7) Middleware de tratamento de erros global(perguntar sobre futuramente)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  // Verifica se o erro tem um código de status definido, caso contrário, usa 500
+  const statusCode = err.statusCode || 500;
+
+  // Prepara a mensagem de erro
+  const mensagemErro = process.env.NODE_ENV === 'production'
+    ? 'Ocorreu um erro interno no servidor.'
+    : err.message;
+
+  // Envia a resposta JSON com o erro
+  res.status(statusCode).json({
+    erro: mensagemErro,
+    // Inclui detalhes adicionais apenas em ambiente de desenvolvimento
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
+});
+
+
 
 // Aplicando o middleware nesta instância do Express
 app.use(autenticacaoMiddleware);
