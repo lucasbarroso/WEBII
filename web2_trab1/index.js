@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Olá, mundo!');
@@ -18,7 +19,7 @@ app.get('/saudacao/:nome', (req, res) => {
 });
 
 // 3)Middleware de autenticação
-const autenticacaoMiddleware = (req, res, next) => {
+async function autenticacaoMiddleware (req, res, next) {
   const token = req.headers['authorization'];
 
   if (token) {
@@ -37,7 +38,8 @@ app.get('/rota_protegida', (req, res) => {
 });
 
 // 4) Rota GET com filtros usando query params
-const produtos = [
+
+const produtos = [ //dados mockados
   { id: 1, nome: 'Camiseta', categoria: 'Roupas', preco: 29.99 },
   { id: 2, nome: 'Tênis', categoria: 'Calçados', preco: 99.99 },
   { id: 3, nome: 'Celular', categoria: 'Eletronicos', preco: 999.99 },
@@ -47,6 +49,7 @@ const produtos = [
 
 app.get('/produtos', (req, res) => {
   let produtosFiltrados = [...produtos];
+
 
   // Filtragem por categoria
   if (req.query.categoria) {//exemplo de uso: localhost:3000/produtos?categoria=roupas
@@ -62,7 +65,43 @@ app.get('/produtos', (req, res) => {
   }
 
   res.json(produtosFiltrados);
-  
-  // Aplicando o middleware nesta instância do Express
-  app.use(autenticacaoMiddleware);
 });
+
+
+// 5) Rota POST para adicionar um novo produto com ID único
+app.post('/novo-produto', validacaoNovoProduto, (req, res) => {
+  const novoProduto = req.body;
+  const id = Date.now(); // Gera um ID único baseado no timestamp atual
+
+  const produtoComId = { id, ...novoProduto };
+
+  // Aqui você poderia adicionar o produto a um array ou banco de dados
+  // Por exemplo: produtos.push(produtoComId);
+
+  res.status(201).json(produtoComId);
+});
+
+
+//6)Middleware de validação para novo produto
+ async function validacaoNovoProduto (req, res, next) {
+  const { nome, categoria, preco } = req.body;
+
+  if (!nome || typeof nome !== 'string' || nome.trim().length === 0) {
+    return res.status(400).json({ erro: 'Nome do produto é obrigatório e deve ser uma string não vazia.' });
+  }
+
+  if (!categoria || typeof categoria !== 'string' || categoria.trim().length === 0) {
+    return res.status(400).json({ erro: 'Categoria do produto é obrigatória e deve ser uma string não vazia.' });
+  }
+
+  if (!preco || typeof preco !== 'number' || preco <= 0) {
+    return res.status(400).json({ erro: 'Preço do produto é obrigatório e deve ser um número positivo.' });
+  }
+
+  next();
+};
+
+// Aplicando o middleware nesta instância do Express
+app.use(autenticacaoMiddleware);
+
+
